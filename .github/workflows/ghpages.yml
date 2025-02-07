@@ -1,30 +1,29 @@
-name: Deploy
+name: Deploy to DockerHub
 
 on: [push]
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout Dashboard code
+    - name: Checkout code
       uses: actions/checkout@v3
-    - uses: pnpm/action-setup@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
       with:
-        version: latest
-    - name: Setup Nodejs
-      uses: actions/setup-node@v3
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push
+      uses: docker/build-push-action@v4
       with:
-        node-version: '18.x'
-        cache: pnpm
-    - name: Install package and build
-      run: |
-        pnpm install --frozen-lockfile
-        pnpm build
-    - name: Deploy
-      uses: crazy-max/ghaction-github-pages@v3
-      with:
-        target_branch: gh-pages
-        build_dir: dist
-        fqdn: clash.razord.top
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKERHUB_USERNAME }}/clash-and-dashboard:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/clash-and-dashboard:${{ github.sha }}
